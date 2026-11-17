@@ -324,7 +324,7 @@ let sb=null,currentUser=null;
 async function boot(){
   try{
     if(!window.supabase||!window.supabase.createClient)throw new Error('No se pudo cargar la biblioteca de conexión. Verifique su conexión a Internet.');
-    sb=window.supabase.createClient('https://fwjjtiziozugmhrcfgwzu.supabase.co','sb_publishable_Jj3gaDdNmT-iRFRz-Muo3g_hnLmg8-9');
+    sb=window.supabase.createClient('https://fwjjtziozugmhrcfgwzu.supabase.co','sb_publishable_Jj3gaDdNmT-iRFRz-Muo3g_hnLmg8-9');
     $('#authForm').onsubmit=async e=>{e.preventDefault();$('#authMsg').textContent='Validando credenciales…';$('#authSubmit').disabled=true;try{const {data,error}=await sb.auth.signInWithPassword({email:$('#authEmail').value.trim(),password:$('#authPassword').value});if(error)throw error;await setSession(data.user);$('#authMsg').textContent=''}catch(err){$('#authMsg').textContent=err.message||'No se pudo iniciar sesión.'}finally{$('#authSubmit').disabled=false}};
     $('#signOut').onclick=async()=>{await sb.auth.signOut();location.reload()};
     $('#go').onclick=async()=>{if(!canEdit)return;try{await saveParams()}catch(e){$('#info').textContent='No se pudieron guardar los parámetros: '+(e.message||e)}};
