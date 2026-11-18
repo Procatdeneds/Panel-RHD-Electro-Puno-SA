@@ -579,6 +579,9 @@ async function enterPanel(user){
  $('#authGate').style.display='none'; $('#logoutBtn').hidden=false;
  $('#role').textContent=(canEdit?'Sesión de administrador: ':'Sesión de consulta: ')+user.email+' · '+(canEdit?'puede consultar y acceder a las opciones administrativas locales.':'solo lectura.');
  $('#adm').hidden=!canEdit;
+ // Habilitar la publicación únicamente después de validar el perfil del administrador.
+ $('#saveHtml').disabled=!canEdit;
+ $('#saveHtml').textContent='Publicar actualización en GitHub';
  // El contenido de este HTML es una copia incorporada; los cambios no se sincronizan aún con Supabase.
  document.querySelectorAll('#par input,#par textarea,#go').forEach(e=>e.disabled=true);
  ZL=DATA.z; SRC=DATA.rows.map(toRec); setP(DATA.params); build(SRC); render();
