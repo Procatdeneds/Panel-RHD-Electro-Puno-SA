@@ -378,6 +378,7 @@ function showAuth(message=''){
 function showRecovery(){
  recoveryMode=true;
  $('#authGate').style.display='flex';
+ $('#authForm').querySelector(':scope > h2').hidden=true;
  // Oculta solo los controles de inicio de sesión; los mensajes de error/estado
  // permanecen visibles para que el usuario pueda conocer el resultado.
  $('#authForm').querySelectorAll(':scope > label').forEach(el=>el.hidden=true);
@@ -464,24 +465,37 @@ $('#saveNewPassword').addEventListener('click',async e=>{
  if(password.length<8){ $('#authError').textContent='La contraseña debe tener al menos 8 caracteres.'; return; }
  if(password!==confirm){ $('#authError').textContent='Las contraseñas no coinciden.'; return; }
  btn.disabled=true; btn.textContent='Guardando…';
+ let actualizado=false;
  try{
-  // Confirma que el enlace de recuperación todavía mantiene una sesión válida.
+  // Comprueba que el enlace de recuperación conserve una sesión válida.
   const {data:{session},error:sessionError}=await supabaseClient.auth.getSession();
   if(sessionError) throw sessionError;
-  if(!session) throw new Error('El enlace de recuperación venció o ya fue utilizado. Solicite un nuevo enlace desde el inicio de sesión.');
+  if(!session) throw new Error('El enlace de recuperación venció o ya fue utilizado. Solicite un nuevo enlace.');
   const {error}=await supabaseClient.auth.updateUser({password});
   if(error) throw error;
-  // Evita que una recarga vuelva a interpretar el fragmento como recuperación.
-  history.replaceState(null,document.title,location.pathname+location.search);
+  actualizado=true;
+
+  // Cierra la sesión antes de mostrar la confirmación para que el usuario
+  // vuelva a ingresar con la contraseña recién establecida.
   await supabaseClient.auth.signOut();
   recoveryMode=false;
-  showAuth();
-  $('#authNotice').hidden=false;
-  $('#authNotice').textContent='Contraseña actualizada correctamente. Inicie sesión con su nueva contraseña.';
+  history.replaceState(null,document.title,location.pathname+location.search);
+
+  $('#authForm').querySelector(':scope > h2').hidden=true;
+  $('#authForm').querySelector(':scope > p:not(#authError):not(#authNotice)').hidden=true;
+  $('#passwordRecovery h2').textContent='¡Exitoso!';
+  $('#passwordRecovery > p').textContent='La contraseña se actualizó correctamente. Ya puede iniciar sesión con su nueva contraseña.';
+  $('#passwordRecoveryForm').innerHTML='<button id="recoveryBackToLogin" type="button" style="width:100%;padding:11px;background:#1683D8;color:white;border:0;border-radius:8px;font-weight:700">Volver al inicio de sesión</button>';
+  $('#authError').hidden=true;
+  $('#authNotice').hidden=true;
+  $('#recoveryBackToLogin').addEventListener('click',()=>showAuth());
  }catch(err){
+  recoveryMode=true;
   $('#authError').hidden=false;
   $('#authError').textContent=err.message||'No se pudo actualizar la contraseña.';
- }finally{btn.disabled=false;btn.textContent='Guardar nueva contraseña';}
+ }finally{
+  if(!actualizado){btn.disabled=false;btn.textContent='Guardar nueva contraseña';}
+ }
 });
 $('#cancelRecovery').addEventListener('click',async()=>{
  recoveryMode=false;
