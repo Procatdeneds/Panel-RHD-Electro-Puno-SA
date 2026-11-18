@@ -205,9 +205,9 @@ input,select,textarea,.gf{border:1px solid #C9D7E5;border-radius:7px;background:
    <p style="color:#657487;margin:0 0 14px">Ingrese su nueva contraseña y confírmela.</p>
    <div id="passwordRecoveryForm">
     <label for="newPassword">Nueva contraseña</label>
-    <input id="newPassword" type="password" minlength="8" autocomplete="new-password" required style="display:block;width:100%;box-sizing:border-box;padding:11px;margin:6px 0 14px;border:1px solid #C9D7E5;border-radius:8px">
+    <input id="newPassword" type="password" minlength="8" autocomplete="new-password" disabled style="display:block;width:100%;box-sizing:border-box;padding:11px;margin:6px 0 14px;border:1px solid #C9D7E5;border-radius:8px">
     <label for="confirmPassword">Confirmar nueva contraseña</label>
-    <input id="confirmPassword" type="password" minlength="8" autocomplete="new-password" required style="display:block;width:100%;box-sizing:border-box;padding:11px;margin:6px 0 16px;border:1px solid #C9D7E5;border-radius:8px">
+    <input id="confirmPassword" type="password" minlength="8" autocomplete="new-password" disabled style="display:block;width:100%;box-sizing:border-box;padding:11px;margin:6px 0 16px;border:1px solid #C9D7E5;border-radius:8px">
     <button id="saveNewPassword" type="button" style="width:100%;padding:11px;background:#1683D8;color:white;border:0;border-radius:8px;font-weight:700">Guardar nueva contraseña</button>
     <button id="cancelRecovery" type="button" style="width:100%;margin-top:8px;padding:9px;background:#EEF3F8;color:#126FC0;border:1px solid #C9D7E5;border-radius:8px">Volver al inicio de sesión</button>
    </div>
@@ -461,7 +461,12 @@ function showAuth(message=''){
  $('#authGate').style.display='flex'; $('#authError').textContent=message;
  $('#authNotice').textContent='';
  $('#authForm').querySelector('#passwordRecovery').hidden=true;
- $('#authForm').querySelectorAll('label,input,button').forEach(e=>e.hidden=false);
+ // Mostrar solo los controles principales; no revelar controles internos de recuperación.
+ $('#authForm').querySelectorAll(':scope > h2,:scope > p,:scope > label,:scope > input,:scope > button').forEach(e=>e.hidden=false);
+ ['newPassword','confirmPassword'].forEach(id=>{
+  const el=$('#'+id);
+  if(el){el.required=false;el.disabled=true;el.value='';}
+ });
  ['authEmail','authPassword','authSubmit','forgotPasswordBtn'].forEach(id=>{
   const el=$('#'+id); if(el){el.disabled=false;el.hidden=false;}
  });
@@ -482,7 +487,9 @@ function showRecovery(){
  $('#authForm').querySelectorAll(':scope > h2,:scope > p:not(#authError):not(#authNotice)').forEach(el=>el.hidden=true);
  $('#passwordRecovery').hidden=false;
  $('#newPassword').disabled=false;
+ $('#newPassword').required=true;
  $('#confirmPassword').disabled=false;
+ $('#confirmPassword').required=true;
  $('#saveNewPassword').disabled=false;
  $('#cancelRecovery').disabled=false;
  $('#authError').hidden=false;
