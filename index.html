@@ -104,6 +104,9 @@ html,body,body *{font-family:Tahoma,Arial,sans-serif!important}
  --c4:#16A34A;--c5:#6A35C8;--land:#F1F5F9;--sea:#EAF4FF;--brd:#FFFFFF;--prv:#244B75;
 }
 html,body{background:#F3F6FA;color:#172536}
+/* Desde el primer render se oculta el panel hasta validar la sesión. */
+body:not(.authenticated) main > :not(#authGate){visibility:hidden!important;pointer-events:none!important}
+body:not(.authenticated) #authGate{visibility:visible!important;pointer-events:auto!important}
 main{max-width:1360px;padding:18px}
 .top{
  background:linear-gradient(112deg,#092B55 0%,#0757A6 48%,#1683D8 100%);
@@ -457,6 +460,7 @@ const SUPABASE_URL='https://fwjjtziozugmhrcfgwzu.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_Jj3gaDdNmT-iRFRz-Muo3g_hnLmg8-9';
 let supabaseClient=null, signedUser=null, recoveryMode=false;
 function showAuth(message=''){
+ document.body.classList.remove('authenticated');
  recoveryMode=false;
  $('#authGate').style.display='flex'; $('#authError').textContent=message;
  $('#authNotice').textContent='';
@@ -505,6 +509,7 @@ async function enterPanel(user){
    await supabaseClient.auth.signOut(); throw new Error('Su cuenta no tiene un perfil activo autorizado. Solicite acceso al administrador.');
  }
  signedUser=user; canEdit=profile.rol==='admin'; db=null;
+ document.body.classList.add('authenticated');
  $('#authGate').style.display='none'; $('#logoutBtn').hidden=false;
  $('#role').textContent=(canEdit?'Sesión de administrador: ':'Sesión de consulta: ')+user.email+' · '+(canEdit?'puede consultar y acceder a las opciones administrativas locales.':'solo lectura.');
  $('#adm').hidden=!canEdit;
