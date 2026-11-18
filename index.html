@@ -114,7 +114,7 @@ html,body,body *{font-family:Tahoma,Arial,sans-serif!important}
     <input id="newPassword" type="password" minlength="8" autocomplete="new-password" required style="display:block;width:100%;box-sizing:border-box;padding:11px;margin:6px 0 14px;border:1px solid #C9D7E5;border-radius:8px">
     <label for="confirmPassword">Confirmar nueva contraseña</label>
     <input id="confirmPassword" type="password" minlength="8" autocomplete="new-password" required style="display:block;width:100%;box-sizing:border-box;padding:11px;margin:6px 0 16px;border:1px solid #C9D7E5;border-radius:8px">
-    <button id="saveNewPassword" type="submit" style="width:100%;padding:11px;background:#1683D8;color:white;border:0;border-radius:8px;font-weight:700">Guardar nueva contraseña</button>
+    <button id="saveNewPassword" type="button" style="width:100%;padding:11px;background:#1683D8;color:white;border:0;border-radius:8px;font-weight:700">Guardar nueva contraseña</button>
     <button id="cancelRecovery" type="button" style="width:100%;margin-top:8px;padding:9px;background:#EEF3F8;color:#126FC0;border:1px solid #C9D7E5;border-radius:8px">Volver al inicio de sesión</button>
    </div>
   </section>
@@ -363,20 +363,32 @@ const SUPABASE_URL='https://fwjjtziozugmhrcfgwzu.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_Jj3gaDdNmT-iRFRz-Muo3g_hnLmg8-9';
 let supabaseClient=null, signedUser=null, recoveryMode=false;
 function showAuth(message=''){
+ recoveryMode=false;
  $('#authGate').style.display='flex'; $('#authError').textContent=message;
  $('#authNotice').textContent='';
  $('#authForm').querySelector('#passwordRecovery').hidden=true;
- $('#authForm').querySelector('#authSubmit').closest('form').querySelectorAll('label,input,button').forEach(e=>{if(e.id!=='passwordRecovery')e.hidden=false});
- $('#authForm').querySelector('#authSubmit').closest('form').querySelector('#passwordRecovery').hidden=true;
+ $('#authForm').querySelectorAll('label,input,button').forEach(e=>e.hidden=false);
+ ['authEmail','authPassword','authSubmit','forgotPasswordBtn'].forEach(id=>{
+  const el=$('#'+id); if(el){el.disabled=false;el.hidden=false;}
+ });
+ $('#authEmail').required=true;
+ $('#authPassword').required=true;
  $('#logoutBtn').hidden=true;
 }
 function showRecovery(){
  recoveryMode=true;
  $('#authGate').style.display='flex';
- $('#authForm').querySelectorAll(':scope > label,:scope > input,:scope > button,:scope > p').forEach(e=>e.hidden=true);
+ // Oculta y desactiva los controles de acceso normal durante la recuperación.
+ ['authEmail','authPassword','authSubmit','forgotPasswordBtn'].forEach(id=>{
+  const el=$('#'+id); if(el){el.hidden=true;el.disabled=true;el.required=false;}
+ });
+ $('#authForm').querySelectorAll(':scope > label,:scope > p,:scope > h2').forEach(el=>el.hidden=true);
  $('#passwordRecovery').hidden=false;
+ $('#newPassword').disabled=false;
+ $('#confirmPassword').disabled=false;
  $('#authError').textContent='';
- $('#authNotice').textContent='';
+ $('#authNotice').textContent='El enlace fue validado. Ingrese y confirme su nueva contraseña.';
+ $('#logoutBtn').hidden=true;
 }
 async function enterPanel(user){
  const {data:profile,error}=await supabaseClient.from('perfiles').select('rol,activo').eq('user_id',user.id).maybeSingle();
@@ -395,15 +407,34 @@ async function enterPanel(user){
 async function boot(){
  try{
   if(!window.supabase?.createClient) throw new Error('No se pudo cargar el servicio de autenticación. Recargue la página.');
+  // Detecta el tipo de enlace tanto en el fragmento como en los parámetros de la URL.
+  const hashParams=new URLSearchParams(location.hash.startsWith('#')?location.hash.slice(1):location.hash);
+  const queryParams=new URLSearchParams(location.search);
+  const recoveryUrl=hashParams.get('type')==='recovery'||queryParams.get('type')==='recovery';
+  if(recoveryUrl) recoveryMode=true;
+
   supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-  supabaseClient.auth.onAuthStateChange(async(event,session)=>{
-   if(event==='PASSWORD_RECOVERY'){ showRecovery(); return; }
-   if(event==='SIGNED_OUT'){ signedUser=null; canEdit=false; $('#adm').hidden=true; recoveryMode=false; showAuth(); }
+  supabaseClient.auth.onAuthStateChange((event,session)=>{
+   if(event==='PASSWORD_RECOVERY'){
+    recoveryMode=true;
+    showRecovery();
+    return;
+   }
+   if(event==='SIGNED_OUT' && !recoveryMode){
+    signedUser=null; canEdit=false; $('#adm').hidden=true; showAuth();
+   }
   });
+
   const {data:{session},error}=await supabaseClient.auth.getSession();
   if(error) throw error;
-  if(session && !recoveryMode && !location.hash.includes('type=recovery')){ await enterPanel(session.user); }
-  else if(!recoveryMode && !location.hash.includes('type=recovery')) showAuth();
+
+  // Nunca abrir el panel directamente cuando el usuario viene de un enlace de recuperación.
+  if(recoveryUrl || recoveryMode){
+   showRecovery();
+   return;
+  }
+  if(session){ await enterPanel(session.user); }
+  else{ showAuth(); }
  }catch(e){ showAuth(e.message||'No se pudo iniciar el acceso.'); }
 }
 $('#forgotPasswordBtn').addEventListener('click',async()=>{
