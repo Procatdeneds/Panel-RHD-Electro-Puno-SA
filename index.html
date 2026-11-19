@@ -483,7 +483,16 @@ const copySelectedClaim=async()=>{
 };
 const copyBtn=$('#copySelectedClaim');if(copyBtn)copyBtn.onclick=copySelectedClaim;
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='c'&&SELCLAIM&&!['INPUT','TEXTAREA'].includes(document.activeElement?.tagName)){e.preventDefault();copySelectedClaim()}});
-const pt=$('#pendingClaims');if(pt)pt.onclick=e=>{const tr=e.target.closest('tr[data-claim]');if(tr)locateClaim(tr.dataset.claim)};
+const pt=$('#pendingClaims');if(pt)pt.onclick=e=>{
+ // Permitir seleccionar texto de las celdas con el cursor. Si hay texto
+ // resaltado, no ejecutar locateClaim(), porque render() borraría la selección
+ // y el menú contextual del navegador (clic derecho > Copiar) no funcionaría.
+ const selectedText=window.getSelection()?.toString().trim();
+ if(selectedText)return;
+ const tr=e.target.closest('tr[data-claim]');if(tr)locateClaim(tr.dataset.claim)
+};
+// No bloquear el menú contextual nativo: el usuario puede resaltar valores
+// y hacer clic derecho > Copiar directamente en la tabla.
 const applyGisFilter=(key,value)=>{GISF[key]=value;const active=document.activeElement?.dataset?.gf,st=document.activeElement?.selectionStart;render();if(active){const el=document.querySelector(`[data-gf="${active}"]`);if(el){el.focus();if(typeof st==='number'&&el.setSelectionRange)el.setSelectionRange(st,st)}}};
 document.querySelectorAll('#pendingClaims [data-gf]').forEach(el=>{const key=el.dataset.gf;el.addEventListener(el.tagName==='INPUT'&&el.type==='text'?'input':'change',e=>applyGisFilter(key,e.target.value))});
 const clearGis=$('#clearGisFilters');if(clearGis)clearGis.onclick=()=>{GISF={cod:'',un:'',zl:'',ubi:'',clase:'',desde:'',hasta:'',estado:'',sum:''};render()};
