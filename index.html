@@ -3,236 +3,137 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Flujograma de Procesamiento RHD</title>
+<title>Flujograma Integrado – Procesamiento de Reclamos RHD</title>
 <style>
-  :root {
-    --bg: #f8fafc;
-    --node: #e4f2ff;
-    --decision: #f4faff;
-    --border: #c7d8e8;
-    --text: #07549a;
-    --line: #8b98a5;
-    --accent: #1769aa;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font-family: Arial, Helvetica, sans-serif;
-    background: var(--bg);
-    color: #17324d;
-  }
-  header {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background: rgba(248,250,252,.96);
-    border-bottom: 1px solid #dbe5ee;
-    padding: 14px 18px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-  h1 { font-size: 18px; margin: 0; color: #124d83; }
-  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
-  button {
-    border: 1px solid #b8cfe3;
-    background: #fff;
-    color: #155b95;
-    padding: 8px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-  }
-  button:hover { background: #eaf4fc; }
-  main { padding: 24px 14px 50px; overflow-x: auto; }
-  .diagram { min-width: 1100px; max-width: 1700px; margin: auto; }
-  .mermaid { text-align: center; }
-  .mermaid svg { max-width: 100%; height: auto; }
-  .legend {
-    max-width: 1100px;
-    margin: 24px auto 0;
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    justify-content: center;
-    font-size: 13px;
-  }
-  .legend span {
-    display: inline-flex; align-items: center; gap: 7px;
-    background: white; border: 1px solid #d6e2ec; border-radius: 20px;
-    padding: 7px 12px;
-  }
-  .dot { width: 12px; height: 12px; border-radius: 3px; display:inline-block; }
-  .note {
-    max-width: 1100px; margin: 22px auto; background: white;
-    border: 1px solid #d7e4ee; border-radius: 12px; padding: 14px 18px;
-    color: #35556f; font-size: 14px; line-height: 1.5;
-  }
-  @media print {
-    header, .note, .legend { display:none; }
-    body { background: white; }
-    main { padding: 0; overflow: visible; }
-    .diagram { min-width: 0; width: 100%; }
-    .mermaid svg { width: 100% !important; }
-  }
+  :root { --bg:#f4f7fb; --ink:#172033; --blue:#1f4e79; --light:#eaf2f8; --green:#e7f5ec; --yellow:#fff6d8; --red:#fde8e7; --purple:#eee8ff; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:Arial,Helvetica,sans-serif; background:var(--bg); color:var(--ink); }
+  header { background:linear-gradient(135deg,#173f65,#256b9b); color:white; padding:28px 22px; text-align:center; }
+  header h1 { margin:0 0 8px; font-size:clamp(22px,3vw,34px); }
+  header p { margin:0; opacity:.92; }
+  main { max-width:1500px; margin:auto; padding:22px; }
+  .toolbar { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:18px; }
+  button { border:0; background:#1f4e79; color:white; padding:10px 16px; border-radius:8px; cursor:pointer; font-weight:600; }
+  button:hover { background:#163b5c; }
+  .diagram { background:white; border-radius:14px; box-shadow:0 4px 18px #13263b14; padding:20px; overflow:auto; }
+  #flowchart { min-width:900px; }
+  .legend { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin:18px 0; }
+  .legend span { display:inline-flex; align-items:center; gap:7px; font-size:13px; }
+  .swatch { width:16px;height:16px;border:1px solid #777;border-radius:4px;display:inline-block; }
+  .notes { background:white; border-radius:12px; padding:18px 22px; margin-top:18px; }
+  .notes h2 { margin-top:0; color:var(--blue); }
+  .notes li { margin:8px 0; line-height:1.45; }
+  footer { text-align:center; color:#667085; padding:20px; font-size:12px; }
+  @media print { body{background:white} header{background:#fff;color:#111;border-bottom:2px solid #1f4e79} .toolbar{display:none} main{max-width:none;padding:0} .diagram,.notes{box-shadow:none;border:1px solid #ddd} }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
 </head>
 <body>
 <header>
-  <h1>Flujograma de Procesamiento y Clasificación RHD</h1>
-  <div class="actions">
-    <button onclick="window.print()">Imprimir / Guardar PDF</button>
-    <button onclick="document.getElementById('diagram').scrollIntoView({behavior:'smooth'})">Ver flujograma</button>
-  </div>
+<h1>Flujograma Integrado de Procesamiento y Asignación de Reclamos</h1>
+<p>Panel RHD – Clasificación, validación y asignación zonal</p>
 </header>
 <main>
-<div class="diagram" id="diagram">
-<pre class="mermaid">
-flowchart TD
-
-    A["Archivo TXT RHD cargado"] --> B["Separar encabezados y líneas"]
-    B --> C["Identificar registros"]
-    C --> D{"¿Línea inicia con ID de 16 dígitos?"}
-
-    D -->|Sí| E["Iniciar nuevo registro"]
-    D -->|No| F["Agregar línea al registro anterior"]
-    F --> C
-
-    E --> G["Separar campos por tabulaciones"]
-    G --> H{"¿Cantidad de campos excede encabezados?"}
-
-    H -->|Sí| I["Reconstruir campo variable"]
-    I --> J["Conservar primeras 30 columnas"]
-    J --> K["Unir columnas intermedias"]
-    K --> L["Conservar últimas 35 columnas"]
-    L --> M["Asignar campos a encabezados"]
-
-    H -->|No| M
-
-    M --> N["Crear objeto del registro"]
-    N --> O["Convertir registro RHD"]
-    O --> P["Extraer fechas, estado y tipo"]
-    P --> Q["CLASIFICAR REGISTROS"]
-
-    Q --> R["NORMALIZAR CAMPOS<br/>Mayúsculas · espacios · tildes"]
-    R --> S{"¿NombreTipoDenuncia contiene FACTURA?"}
-
-    S -->|Sí| T["DERIVAR AL BLOQUE 3"]
-    S -->|No| U{"¿Corresponde al BLOQUE 1?"}
-
-    U -->|Sí| V["BLOQUE 1<br/>Asignación por criterios NTCSE"]
-    V --> W["Comparar NombreLocalidadNTCSE<br/>con la Zonal correspondiente"]
-    W --> X{"¿Existe coincidencia?"}
-
-    X -->|Sí| Y["Determinar Unidad Zonal y Zonal"]
-    X -->|No| Z["Evaluar UBIGEO y distrito"]
-
-    Z --> AA{"¿UBIGEO compartido entre zonales?"}
-    AA -->|Sí| AB["Desempatar mediante Alimentador AMT"]
-    AA -->|No| AC["Determinar Zonal según UBIGEO y distrito"]
-
-    AB --> AD["Validar consistencia de los campos"]
-    AC --> AD
-    AD --> AE{"¿Existe contradicción?"}
-
-    AE -->|Sí| AF["PENDIENTE DE REVISIÓN"]
-    AE -->|No| AG{"¿Información suficiente?"}
-
-    AG -->|Sí| Y
-    AG -->|No| AH["SIN ASIGNACIÓN"]
-    Y --> AI["ASIGNACIÓN TERRITORIAL"]
-
-    U -->|No| AJ{"¿Corresponde al BLOQUE 2?"}
-    AJ -->|Sí| AK{"¿NombreTipoAtencion contiene PREDIO?"}
-    AK -->|Sí| T
-    AK -->|No| AL["BLOQUE 2<br/>Asignación territorial"]
-
-    AL --> AM["Buscar correspondencia de NombreZonaAdministrativa"]
-    AM --> AN{"¿Correspondencia válida?"}
-    AN -->|Sí| AI
-    AN -->|No| AO["PENDIENTE DE REVISIÓN"]
-
-    AJ -->|No| T
-
-    T --> AP["BLOQUE 3<br/>Asignaciones comerciales y especiales"]
-    AP --> AQ{"¿Cumple criterio comercial o especial?"}
-
-    AQ -->|JULIACA| AR["JULIACA COMERCIAL"]
-    AQ -->|PUNO| AS["PUNO COMERCIAL"]
-    AQ -->|AMANTANI| AT["GERENCIA TÉCNICA<br/>D.OPERACIONES"]
-    AQ -->|Otros criterios| AU["Evaluar criterios específicos del Excel"]
-
-    AR --> AV["Validar criterios de JULIACA<br/>PREDIO · FACTURA · Localidad · Zona administrativa"]
-    AS --> AW["Validar criterios de PUNO<br/>PREDIO · FACTURA · Exclusiones territoriales"]
-    AT --> AX["Validar AISLADO AMANTANI"]
-
-    AV --> AY["Asignación final"]
-    AW --> AY
-    AX --> AY
-    AU --> AY
-
-    AI --> AZ["CONSOLIDAR ASIGNACIONES"]
-    AF --> AZ
-    AH --> AZ
-    AO --> AZ
-    AY --> AZ
-
-    AZ --> BA["Validar asignación única por registro"]
-    BA --> BB["Procesar BLOQUE 1"]
-    BB --> BC["Procesar BLOQUE 2"]
-    BC --> BD["Normalizar asignaciones"]
-    BD --> BE["Consolidar registros y resultados"]
-    BE --> BF["Construir indicadores"]
-    BF --> BG["RENDERIZAR KPI,<br/>GRÁFICOS, TABLAS Y MAPA"]
-
-    classDef process fill:#e4f2ff,stroke:#c7d8e8,color:#07549a,stroke-width:1px;
-    classDef decision fill:#f4faff,stroke:#b9d4eb,color:#07549a,stroke-width:1px,stroke-dasharray:4 3;
-    classDef final fill:#d8edff,stroke:#9ec5e5,color:#064b85,stroke-width:2px;
-    classDef warning fill:#fff2e6,stroke:#e8c49b,color:#8b4b00;
-    class A,B,C,E,F,G,I,J,K,L,M,N,O,P,Q,R,T,V,W,Y,Z,AB,AC,AD,AI,AL,AM,AR,AS,AT,AU,AV,AW,AX,AY,AZ,BA,BB,BC,BD,BE process;
-    class D,H,S,U,X,AA,AE,AG,AJ,AK,AN,AQ decision;
-    class BG final;
-    class AF,AH,AO warning;
-</pre>
+<div class="toolbar">
+<button onclick="window.print()">Imprimir / Guardar como PDF</button>
+<button onclick="document.getElementById('flowchart').requestFullscreen?.()">Ver en pantalla completa</button>
 </div>
-
 <div class="legend">
-  <span><i class="dot" style="background:#e4f2ff"></i>Proceso</span>
-  <span><i class="dot" style="background:#f4faff;border:1px dashed #b9d4eb"></i>Decisión</span>
-  <span><i class="dot" style="background:#d8edff;border:2px solid #9ec5e5"></i>Etapa final</span>
-  <span><i class="dot" style="background:#fff2e6;border:1px solid #e8c49b"></i>Revisión / excepción</span>
+<span><i class="swatch" style="background:#eaf2f8"></i>Proceso</span>
+<span><i class="swatch" style="background:#fff6d8"></i>Decisión / validación</span>
+<span><i class="swatch" style="background:#e7f5ec"></i>Asignación válida</span>
+<span><i class="swatch" style="background:#fde8e7"></i>Revisión / pendiente</span>
+<span><i class="swatch" style="background:#eee8ff"></i>Bloque 3</span>
 </div>
+<div class="diagram">
+<div id="flowchart" class="mermaid">
+flowchart TD
+    A([INICIO]) --> B[Importar archivo TXT de SIELSE]
+    B --> C[Leer encabezados y registros]
+    C --> D[Detectar registros multilínea y reconstruir campos]
+    D --> E[Normalizar texto: mayúsculas, espacios y caracteres]
+    E --> F{¿Contiene FACTURA?}
+    F -- Sí --> B3
+    F -- No --> G{¿Corresponde al Bloque 1: Juliaca 032 MAYORES o Puno Zona 033 MAYORES?}
+    G -- Sí --> H[ BLOQUE 1: Validar localidad NTCSE ]
+    G -- No --> B2
 
-<div class="note">
-  <strong>Nota:</strong> El flujo conserva la parte inicial del procesamiento TXT hasta
-  <strong>CLASIFICAR REGISTROS</strong>. Desde esa etapa se integra la lógica de normalización,
-  Bloques 1, 2 y 3, asignación territorial/comercial, validación, consolidación e indicadores.
-  La etapa final permanece como <strong>RENDERIZAR KPI, GRÁFICOS, TABLAS Y MAPA</strong>.
+    H --> I{¿Localidad NTCSE coincide con la zonal?}
+    I -- Sí --> J[Asignar zonal por localidad NTCSE]
+    I -- No --> K[Evaluar UBIGEO y distrito]
+    K --> L{¿UBIGEO identifica una zonal?}
+    L -- Sí --> M{¿UBIGEO compartido?}
+    L -- No --> N[Pendiente de revisión]
+    M -- No --> O[Asignar zonal por UBIGEO]
+    M -- Sí --> P[Usar Alimentador AMT como criterio de desempate]
+    P --> Q{¿AMT permite identificar zonal?}
+    Q -- Sí --> R[Asignar zonal por AMT]
+    Q -- No --> N
+    J --> S[Validar consistencia de asignación]
+    O --> S
+    R --> S
+    S --> T{¿Asignación consistente?}
+    T -- Sí --> U[Asignación confirmada]
+    T -- No --> N
+
+    B2[ BLOQUE 2: Aplicar tabla de correspondencia Excel a NombreZonaAdministrativa ] --> V{¿Existe correspondencia válida?}
+    V -- Sí --> W[Asignar Unidad Zonal según Excel]
+    V -- No --> X[Pendiente de revisión / sin información suficiente]
+
+    B3[ BLOQUE 3: Procesar registros FACTURA y registros derivados de Bloques 1 y 2 ] --> Y{¿Criterio comercial o especial?}
+    Y -- Juliaca Comercial / 032 MAYORES --> Z[Asignar Juliaca Comercial]
+    Y -- Puno Comercial / 033 MAYORES --> AA[Asignar Puno Comercial]
+    Y -- Amantani --> AB[Asignar Gerencia Técnica / D. Operaciones]
+    Y -- Otro criterio --> AC[Aplicar criterio comercial / especial definido]
+    AC --> AD{¿Criterio permite asignación?}
+    AD -- Sí --> AE[Asignación según criterio]
+    AD -- No --> X
+
+    U --> AF[Consolidar resultados de los bloques]
+    W --> AF
+    X --> AF
+    Z --> AF
+    AA --> AF
+    AB --> AF
+    AE --> AF
+
+    AF --> AG[Evitar duplicidad y conservar trazabilidad del criterio]
+    AG --> AH[Identificar campos principales del reclamo]
+    AH --> AI[Extraer fecha, estado, tipo, sector, UBIGEO y suministro]
+    AI --> AJ[Clasificar registros]
+    AJ --> AK[Aplicar procesamiento posterior e indicadores]
+    AK --> AL[Actualizar Panel RHD]
+    AL --> AM([FIN])
+
+    class A,AM terminal;
+    class B,C,D,E,AH,AI,AJ,AK,AL process;
+    class F,G,I,L,M,Q,T,V,Y,AD decision;
+    class J,O,R,U,W,Z,AA,AB,AE assigned;
+    class N,X review;
+    class B3,B2 block;
+    classDef terminal fill:#d9eaf7,stroke:#1f4e79,stroke-width:2px,color:#102a43;
+    classDef process fill:#eaf2f8,stroke:#5b8db8,color:#172033;
+    classDef decision fill:#fff6d8,stroke:#c49a2c,color:#172033;
+    classDef assigned fill:#e7f5ec,stroke:#39875b,color:#172033;
+    classDef review fill:#fde8e7,stroke:#c95c58,color:#172033;
+    classDef block fill:#eee8ff,stroke:#7657b8,color:#172033;
+</div>
+</div>
+<div class="notes">
+<h2>Etapas principales</h2>
+<ol>
+<li><b>Preparación:</b> importar TXT, leer encabezados, reconstruir registros multilínea y normalizar texto.</li>
+<li><b>Bloque 1:</b> para Juliaca 032 MAYORES y Puno Zona 033 MAYORES, validar localidad NTCSE; si no coincide, evaluar UBIGEO/distrito y, cuando sea compartido, Alimentador AMT.</li>
+<li><b>Bloque 2:</b> aplicar la tabla de correspondencia de Excel usando NombreZonaAdministrativa.</li>
+<li><b>Bloque 3:</b> procesar FACTURA y registros derivados de los Bloques 1 y 2 con criterios comerciales/especiales.</li>
+<li><b>Consolidación:</b> evitar duplicidad, conservar el criterio de asignación, identificar campos, clasificar registros y actualizar indicadores del Panel RHD.</li>
+</ol>
+<p><b>Nota:</b> Los casos sin información suficiente o con contradicciones quedan identificados para revisión; no se fuerza una asignación automática.</p>
 </div>
 </main>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<footer>Flujograma integrado – Panel RHD</footer>
 <script>
-  mermaid.initialize({
-    startOnLoad: true,
-    theme: "base",
-    flowchart: {
-      curve: "linear",
-      nodeSpacing: 35,
-      rankSpacing: 42,
-      htmlLabels: true
-    },
-    themeVariables: {
-      primaryColor: "#e4f2ff",
-      primaryTextColor: "#07549a",
-      primaryBorderColor: "#c7d8e8",
-      lineColor: "#8b98a5",
-      secondaryColor: "#f4faff",
-      tertiaryColor: "#ffffff",
-      fontFamily: "Arial, Helvetica, sans-serif"
-    }
-  });
+mermaid.initialize({startOnLoad:true,theme:'base',flowchart:{curve:'basis',htmlLabels:true,nodeSpacing:35,rankSpacing:45},themeVariables:{fontFamily:'Arial',fontSize:'15px',primaryColor:'#eaf2f8',primaryTextColor:'#172033',lineColor:'#526b82'}});
 </script>
 </body>
 </html>
