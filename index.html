@@ -363,7 +363,7 @@ return rec.map(x=>{
   const k=kind(r.NombreClaseAtencion||''),ta=r.NombreTipoAtencion||'',m=/DT(\d)/.exec(ta);
   const sk=Object.keys(r).find(h=>/^(NUMERODESUMINISTRO|NROSUMINISTRO|CODIGOSUMINISTRO|SUMINISTRO|NUMSUMINISTRO)$/.test(h.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]/g,'')));
   const reg=recoverDate(f,regIdx,regIdx),sol=recoverDate(f,solIdx,solIdx);
-  return{reg,sol,est:r.NombreEstadoIncidenteOperativo,k,st:r.CodigoSectorTipico||'',z:r.NombreZonaAdministrativa||'(sin zona)',dt:k=='AP'&&m?'DT'+m[1]:null,sed:k=='AP'&&/AFECTEN A TODAS/.test(ta),pred:/FALTA DE SERVICIO EN EL PREDIO/i.test(r.DescripcionIncidenteOperativo||''),cod:r.CodigoIncidenteOperativo,ubi:(r.Ubigeo||'').trim(),sum:sk?String(r[sk]||'').trim():''}
+  return{reg,sol,est:r.NombreEstadoIncidenteOperativo,k,st:r.CodigoSectorTipico||'',z:r.NombreZonaAdministrativa||'(sin zona)',localidad:r.NombreLocalidadNTCSE||'',tipoDenuncia:r.NombreTipoDenuncia||'',tipoAtencion:r.NombreTipoAtencion||'',zonaLocalidad:r.NombreZonaAdministrativaZona||r.NombreZonaAdministrativa||'',claseAtencion:r.NombreClaseAtencion||'',amt:r.AlimentadorAMT||r.NombreAlimentador||r.Alimentador||'',dt:k=='AP'&&m?'DT'+m[1]:null,sed:k=='AP'&&/AFECTEN A TODAS/.test(ta),pred:/FALTA DE SERVICIO EN EL PREDIO/i.test(r.DescripcionIncidenteOperativo||''),cod:r.CodigoIncidenteOperativo,ubi:(r.Ubigeo||'').trim(),sum:sk?String(r[sk]||'').trim():''}
 });
 }
 const u=a=>[...new Set(a)].sort().map(x=>[x,x]);
@@ -377,11 +377,27 @@ const yc={};N.forEach(r=>{if(r.reg){const y=r.reg.getFullYear();yc[y]=(yc[y]||0)
 D=N.map(r=>{const reg=r.reg,k=r.k,urb=['1','2','3'].includes(r.st),est=r.est;let v=null,i=r.dt?r.dt[2]-1:0;
 if(reg){if(k=='AP'){if(r.sed)v=new Date(+reg+864e5);else if(r.dt)v=(urb||i)?hab(reg,num((urb?'u':'r')+i)):cal(reg,num('r0'))}else if(k=='RIE')v=hab(reg,num('o0'));else if(k=='DET')v=hab(reg,num('o1'));else if(k=='FAC')v=hab(reg,num('o2'))}
 let z=r.z,m=M[z];const zonaOriginal=r.z||'',ub=(r.ubi||'').trim();let zonalCorregida=false;
+const normTxt=s=>String(s||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/\\s+/g,' ').trim().toUpperCase();
+const localidad=normTxt(r.localidad),zonaNorm=normTxt(r.z),denuncia=normTxt(r.tipoDenuncia),atencion=normTxt(r.tipoAtencion),zonaLocalidad=normTxt(r.zonaLocalidad),amt=normTxt(r.amt);
+const hasFactura=denuncia.includes('FACTURA'),hasPredio=atencion.includes('PREDIO');
+const punoLocalidades=['ATUNCOLLA','CHUCUITO','PAUCARCOLLA','VILQUE','ACORA','PLATERIA'];
+const juliacaLocalidades=['ACHAYA','CABANA','CABANILLAS','CAMINACA','CAPACHICA','CARACOTO','SAMAN'];
+const punoZones=['PUNO ZONA 031','PUNO ZONA 030','PUNO ZONA 029','PUNO ZONA 026','CHUCUITO','VILQUE'];
+const juliacaZones=['JULIACA 016 SALIDA LAMPA - AEROPUERTO','JULIACA 017 RINCONADA - SALIDA PUNO','JULIACA 015 MIRAFLORES - PUEBLO DE DIOS','JULIACA 037 SALIDA PUNO','JULIACA 014 HOSPITAL - RIO TOROCOCHA','JULIACA 013 CERCADO','JULIACA 012 SALIDA CUSCO','JULIACA 036 SALIDA AREQUIPA','JULIACA 035 SALIDA HUANCANE'];
+const commercialPuno=hasPredio||hasFactura ? (punoZones.some(x=>normTxt(x)===zonaNorm)||punoLocalidades.some(x=>normTxt(x)===localidad)||punoLocalidades.some(x=>normTxt(x)===zonaLocalidad)||ub==='210101') : false;
+const commercialJuliaca=hasPredio||hasFactura ? (juliacaZones.some(x=>normTxt(x)===zonaNorm)||juliacaLocalidades.some(x=>normTxt(x)===localidad)||juliacaLocalidades.some(x=>normTxt(x)===zonaLocalidad)||ub==='211101') : false;
 if(r.pred&&m&&DEST[m[1]])z=DEST[m[1]];
 if(ZONAS_ORIGEN_CORRECCION.has(zonaOriginal)&&ZONAL_UBIGEO_CORRECTION[ub]){z=ZONAL_UBIGEO_CORRECTION[ub];zonalCorregida=true;}
-if(k=='FAC'||k=='OTR'){if(ub==='210101')z='PUNO COMERCIAL';else if(ub==='211101'&&!zonalCorregida)z='JULIACA COMERCIAL'}
+// BLOQUE 3: los registros comerciales derivados de los bloques 1 y 2
+// se asignan una sola vez, antes de la correspondencia territorial.
+if(hasFactura||hasPredio){
+ if(commercialPuno)z='PUNO COMERCIAL';
+ else if(commercialJuliaca)z='JULIACA COMERCIAL';
+ else if(ub==='210101')z='PUNO COMERCIAL';
+ else if(ub==='211101')z='JULIACA COMERCIAL';
+}
 const m2=M[z]||['(sin relación)','(sin relación)'];
-return{...r,z,zonaOriginal,zonalCorregida,zonalCriterio:zonalCorregida?`UBIGEO ${ub}`:'',un:m2[0],zl:m2[1],venc:v,d:est=='DESESTIMADO',ab:est=='REGISTRADO'||est=='EN PROCESO',ok:est=='CERRADO',h:reg&&r.sol?(r.sol-reg)/36e5:null,q:reg&&reg.getFullYear()==YR?qq(reg):'(fuera del periodo)'}});
+return{...r,z,zonaOriginal,zonalCorregida,zonalCriterio:zonalCorregida?`UBIGEO ${ub}`:'',un:m2[0],zl:m2[1],bloque:hasFactura||hasPredio?'BLOQUE 3':(zonaNorm.includes('JULIACA 032')||zonaNorm.includes('PUNO ZONA 033')?'BLOQUE 1':'BLOQUE 2'),asignacionEstado:(!r.z||r.z==='(sin zona)')?'SIN ASIGNACIÓN':((!M[z]&&z!=='PUNO COMERCIAL'&&z!=='JULIACA COMERCIAL')?'PENDIENTE DE REVISIÓN':'ASIGNADO'),venc:v,d:est=='DESESTIMADO',ab:est=='REGISTRADO'||est=='EN PROCESO',ok:est=='CERRADO',h:reg&&r.sol?(r.sol-reg)/36e5:null,q:reg&&reg.getFullYear()==YR?qq(reg):'(fuera del periodo)'}});
 const o=(a,id,all)=>`<select id="${id}"><option value="">${all}</option>${a.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('')}</select>`;
 $('#filt').innerHTML=`Unidad Zonal ${o(UO.filter(x=>D.some(r=>r.un==x)).map(x=>[x,x]),'fu','Todas')} Zonal ${o(u(D.map(r=>r.zl)),'fn','Todas')} Zona ${o(u(D.map(r=>r.z)),'fz','Todas')} Sector ${o([...new Set(D.map(r=>r.st).filter(Boolean))].sort((a,b)=>a-b).map(x=>[x,SN[x]||x]),'fs','Todos')} Trimestre ${o(u(D.map(r=>r.q).filter(okq)),'fq','Todos')} <label for="fini"><b>Fecha inicio:</b></label> <input type="date" id="fini" title="Fecha inicial del periodo"> <label for="ffin"><b>Fecha fin:</b></label> <input type="date" id="ffin" title="Fecha final del periodo"> <button type="button" id="freset">Limpiar fechas</button>`;
 document.querySelectorAll('#filt select').forEach(s=>s.onchange=render);
